@@ -67,6 +67,47 @@ h1 {
     max-width: 320px;
 }
 
+.topo-perfil {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+}
+
+.avatar {
+    position: relative;
+    flex-shrink: 0;
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    background-color: var(--destaque);
+    /* anel em duas camadas: respiro na cor do cabeçalho + anel turquesa */
+    box-shadow: 0 0 0 4px var(--tinta), 0 0 0 7px var(--destaque);
+    margin: 7px;
+    overflow: hidden;
+}
+
+.avatar img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    border-radius: 50%;
+}
+
+.avatar-inicial {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--fonte-titulo);
+    font-weight: 800;
+    font-size: 44px;
+    color: #fff;
+}
+
 .btn-conceito {
     margin-top: 14px;
     padding: 8px 14px;
@@ -531,6 +572,19 @@ tbody tr.em-edicao:hover {
 
     .total {
         align-items: flex-start;
+    }
+
+    .topo-perfil {
+        gap: 18px;
+    }
+
+    .avatar {
+        width: 72px;
+        height: 72px;
+    }
+
+    .avatar-inicial {
+        font-size: 30px;
     }
 
     #total-estoque {
