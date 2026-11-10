@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Estoque - POO</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap (carregado ANTES do style.css para o nosso CSS poder sobrescrever) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="painel">
+
+        <header class="topo">
+            <div class="topo-titulo">
+                <h1>Cadastro de Produtos do Pedro</h1>
+                <button type="button" class="btn-conceito" data-bs-toggle="modal" data-bs-target="#modal-bootstrap">
+                    Ver Conceito Bootstrap
+                </button>
+            </div>
+            <div class="total">
+                <span class="total-rotulo">Total em estoque</span>
+                <strong id="total-estoque">R$ 0,00</strong>
+            </div>
+        </header>
+
+        <main class="conteudo">
+            <form id="produto-form" novalidate>
+                <!-- Mensagem de erro inline (substitui o alert) -->
+                <div id="mensagem-erro" class="mensagem-erro" role="alert" hidden></div>
+
+                <div class="form-group form-nome">
+                    <label for="nome">Nome do produto</label>
+                    <input type="text" id="nome" placeholder="Ex. Notebook" autocomplete="off" required
+                        aria-controls="sugestoes" aria-expanded="false" />
+
+                    <!-- Caixa de sugestões: produtos já cadastrados com as letras digitadas -->
+                    <div id="sugestoes" class="sugestoes" hidden>
+                        <div class="sugestoes-titulo">Já cadastrado — clique para editar</div>
+                        <ul id="lista-sugestoes"></ul>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="preco">Preço (R$)</label>
+                    <input type="number" id="preco" step="0.01" placeholder="Ex. 3500.00" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="quantidade">Quantidade</label>
+                    <input type="number" id="quantidade" placeholder="Ex. 5" required />
+                </div>
+
+                <button type="submit" class="btn-adicionar">Adicionar Produto</button>
+            </form>
+
+            <div class="lista-topo">
+                <h2>Produtos cadastrados</h2>
+                <button id="limpar-tabela" type="button" class="btn-limpar">Limpar tudo</button>
+            </div>
+
+            <div class="form-group" id="campo-busca">
+                <label for="busca">Pesquisar produto</label>
+                <input type="search" id="busca" placeholder="Digite parte do nome do produto..." autocomplete="off" />
+            </div>
+
+            <div class="tabela-wrapper">
+                <table id="tabela-produtos">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Preço</th>
+                            <th>Qtd</th>
+                            <th>Subtotal</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de confirmação (substitui o confirm) -->
+    <div class="modal fade" id="modal-confirmacao" tabindex="-1" aria-labelledby="confirmacao-titulo"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmacao-titulo">Confirmar ação</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body" id="confirmacao-mensagem"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmacao-confirmar">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal "Conceito Bootstrap" -->
+    <div class="modal fade" id="modal-bootstrap" tabindex="-1" aria-labelledby="bootstrap-titulo" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bootstrap-titulo">Conceito Bootstrap</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body conceito">
+                    <h6>O que é?</h6>
+                    <p>
+                        O Bootstrap é uma biblioteca de CSS e JavaScript com componentes de interface prontos
+                        (botões, modais, alertas, toasts, grid, tabelas...). Em vez de escrever tudo do zero,
+                        aplicamos classes no HTML e o visual e o comportamento já vêm funcionando e responsivos.
+                    </p>
+
+                    <h6>Como usamos neste projeto</h6>
+                    <ul>
+                        <li><strong>Modal de confirmação:</strong> a classe <code>.modal</code> e o
+                            <code>bootstrap.Modal</code> substituem o <code>confirm()</code> antes de remover um
+                            produto ou limpar tudo. O JavaScript aguarda o clique em "Confirmar" ou "Cancelar".</li>
+                        <li><strong>Toasts:</strong> o componente <code>.toast</code> mostra avisos de sucesso
+                            (produto adicionado, atualizado ou removido) sem travar a tela.</li>
+                        <li><strong>Este modal:</strong> aberto apenas com atributos
+                            <code>data-bs-toggle="modal"</code> e <code>data-bs-target</code>, sem JavaScript
+                            extra.</li>
+                        <li><strong>Botões:</strong> as classes <code>.btn</code>, <code>.btn-danger</code> e
+                            <code>.btn-outline-secondary</code> padronizam as ações dos modais.</li>
+                    </ul>
+
+                    <h6>Como usaríamos para acelerar ainda mais</h6>
+                    <ul>
+                        <li><strong>Grid</strong> (<code>.row</code> / <code>.col-md-4</code>) no lugar do nosso
+                            <code>grid-template-columns</code> do formulário.</li>
+                        <li><strong>Formulário:</strong> <code>.form-control</code> e <code>.is-invalid</code> com
+                            <code>.invalid-feedback</code> para a validação visual dos campos.</li>
+                        <li><strong>Tabela:</strong> <code>.table .table-hover .table-responsive</code> para a lista
+                            de produtos.</li>
+                        <li><strong>Utilitários:</strong> <code>.d-flex</code>, <code>.gap-3</code>,
+                            <code>.text-end</code> e <code>.mb-3</code> reduzem a quantidade de CSS próprio.</li>
+                    </ul>
+
+                    <h6>Exemplo</h6>
+                    <pre><code>&lt;button class="btn btn-danger"
+        data-bs-toggle="modal"
+        data-bs-target="#modal-confirmacao"&gt;
+  Excluir
+&lt;/button&gt;</code></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área dos toasts -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="area-toasts"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
