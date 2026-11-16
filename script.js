@@ -2,6 +2,9 @@ const listaDeProdutos = [];
 
 let indiceEdicao = null;
 
+const LIMITE_ESTOQUE_BAIXO = 3;
+const CHAVE_STORAGE = "estoque_produtos";
+
 class Produto {
     #preco;
     #quantidade;
@@ -35,8 +38,6 @@ class Produto {
     }
 }
 
-/* ---------- Referências do DOM ---------- */
-
 const form = document.getElementById("produto-form");
 const tabelaCorpo = document.querySelector("#tabela-produtos tbody");
 const botaoSubmit = form.querySelector("button[type='submit']");
@@ -44,6 +45,11 @@ const inputNome = document.getElementById("nome");
 const inputPreco = document.getElementById("preco");
 const inputQuantidade = document.getElementById("quantidade");
 const inputBusca = document.getElementById("busca");
+const selectOrdenacao = document.getElementById("ordenacao");
+const botaoCsv = document.getElementById("exportar-csv");
+const botaoBackup = document.getElementById("baixar-backup");
+const botaoRestaurar = document.getElementById("restaurar-backup");
+const inputArquivoBackup = document.getElementById("arquivo-backup");
 
 const caixaErro = document.getElementById("mensagem-erro");
 const caixaSugestoes = document.getElementById("sugestoes");
@@ -55,8 +61,6 @@ const modalConfirmacao = new bootstrap.Modal(modalConfirmacaoEl);
 const confirmacaoTitulo = document.getElementById("confirmacao-titulo");
 const confirmacaoMensagem = document.getElementById("confirmacao-mensagem");
 const confirmacaoBotao = document.getElementById("confirmacao-confirmar");
-
-/* ---------- Utilitários ---------- */
 
 function escaparHTML(texto) {
     const div = document.createElement("div");
@@ -75,8 +79,6 @@ const normalizar = (texto) =>
         .trim()
         .toLowerCase();
 
-/* ---------- Mensagem de erro inline (substitui alert) ---------- */
-
 function mostrarErro(mensagem, campo = null) {
     limparErro();
     caixaErro.textContent = mensagem;
@@ -94,7 +96,6 @@ function limparErro() {
     form.querySelectorAll(".invalido").forEach((el) => el.classList.remove("invalido"));
 }
 
-/* ---------- Toast (feedback não-bloqueante) ---------- */
 
 const ESTILOS_TOAST = {
     sucesso: "text-bg-success",
@@ -124,8 +125,6 @@ function mostrarToast(mensagem, tipo = "sucesso") {
     new bootstrap.Toast(toastEl, { delay: 3500 }).show();
 }
 
-/* ---------- Modal de confirmação (substitui confirm) ---------- */
-// Retorna uma Promise: true se o usuário clicou em "Confirmar", false caso contrário.
 
 function confirmarAcao({ titulo, mensagemHTML, textoConfirmar = "Confirmar" }) {
     return new Promise((resolve) => {
@@ -155,7 +154,6 @@ function confirmarAcao({ titulo, mensagemHTML, textoConfirmar = "Confirmar" }) {
     });
 }
 
-/* ---------- Sugestões de produtos já cadastrados ---------- */
 
 function esconderSugestoes() {
     caixaSugestoes.hidden = true;
@@ -250,15 +248,33 @@ document.addEventListener("click", (event) => {
     }
 });
 
-/* ---------- Tabela ---------- */
+
+const ORDENACOES = {
+    padrao: null,
+    "menor-quantidade": (a, b) => a.quantidade - b.quantidade,
+    "maior-preco": (a, b) => b.preco - a.preco,
+    "menor-preco": (a, b) => a.preco - b.preco,
+    alfabetica: (a, b) => a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" }),
+};
 
 function obterProdutosFiltrados() {
     const termo = inputBusca.value.trim().toLowerCase();
 
-    return listaDeProdutos.filter((produto) =>
+    const filtrados = listaDeProdutos.filter((produto) =>
         produto.nome.toLowerCase().includes(termo)
     );
+
+    // Cópia com spread: .sort() altera o array em que é chamado, e não podemos
+    // mexer em listaDeProdutos (os índices de edição/remoção dependem dela).
+    const copia = [...filtrados];
+    const comparador = ORDENACOES[selectOrdenacao.value];
+
+    if (comparador) copia.sort(comparador);
+
+    return copia;
 }
+
+const estoqueBaixo = (produto) => produto.quantidade <= LIMITE_ESTOQUE_BAIXO;
 
 function atualizarTotalEstoque(produtosVisiveis) {
     const valorTotal = produtosVisiveis.reduce(
@@ -306,10 +322,15 @@ function renderizarTabela() {
             linha.classList.add("em-edicao");
         }
 
+        const critico = estoqueBaixo(produto);
+        if (critico) {
+            linha.classList.add("estoque-baixo");
+        }
+
         linha.innerHTML = `
             <td>${escaparHTML(produto.nome)}</td>
             <td>${formatarMoeda(produto.preco)}</td>
-            <td>${produto.quantidade}</td>
+            <td>${produto.quantidade}${critico ? ' <span class="selo-baixo">Estoque Baixo · Repor</span>' : ""}</td>
             <td>${formatarMoeda(produto.subtotal)}</td>
             <td>
                 <button type="button" class="btn-editar" data-acao="editar" data-index="${index}">Editar</button>
@@ -336,7 +357,6 @@ tabelaCorpo.addEventListener("click", (event) => {
     }
 });
 
-/* ---------- Edição / remoção ---------- */
 
 function resetarEstado() {
     indiceEdicao = null;
@@ -387,13 +407,13 @@ async function removerProduto(index) {
         }
     }
 
+    salvarNoStorage();
     renderizarTabela();
     mostrarToast(`"${produto.nome}" foi removido.`, "sucesso");
 }
 
-/* ---------- Eventos ---------- */
-
 inputBusca.addEventListener("input", renderizarTabela);
+selectOrdenacao.addEventListener("change", renderizarTabela);
 
 inputPreco.addEventListener("input", limparErro);
 inputQuantidade.addEventListener("input", limparErro);
@@ -417,6 +437,7 @@ document.getElementById("limpar-tabela").addEventListener("click", async () => {
     listaDeProdutos.length = 0;
     inputBusca.value = "";
     resetarEstado();
+    salvarNoStorage();
     renderizarTabela();
     mostrarToast("Todos os produtos foram removidos.", "sucesso");
 });
@@ -469,6 +490,7 @@ form.addEventListener("submit", (event) => {
         }
 
         resetarEstado();
+        salvarNoStorage();
         renderizarTabela();
         mostrarToast(
             estaEditando ? "Produto atualizado com sucesso." : "Produto adicionado com sucesso.",
@@ -479,4 +501,172 @@ form.addEventListener("submit", (event) => {
     }
 });
 
+
+function produtosParaObjetos() {
+    // Os campos privados (#preco, #quantidade) não aparecem no JSON.stringify,
+    // então montamos objetos simples usando os getters.
+    return listaDeProdutos.map((p) => ({
+        nome: p.nome,
+        preco: p.preco,
+        quantidade: p.quantidade,
+    }));
+}
+
+function salvarNoStorage() {
+    try {
+        localStorage.setItem(CHAVE_STORAGE, JSON.stringify(produtosParaObjetos()));
+    } catch (error) {
+        mostrarToast("Não foi possível salvar os dados no navegador.", "erro");
+    }
+}
+
+// Converte dados externos em instâncias de Produto. Lança erro se algo for inválido.
+function objetosParaProdutos(dados) {
+    if (!Array.isArray(dados)) {
+        throw new Error("O arquivo não contém uma lista de produtos.");
+    }
+
+    const nomesVistos = new Set();
+
+    return dados.map((item, i) => {
+        if (item === null || typeof item !== "object") {
+            throw new Error(`Item ${i + 1} do backup é inválido.`);
+        }
+
+        try {
+            const produto = new Produto(item.nome, Number(item.preco), Number(item.quantidade));
+            const chave = normalizar(produto.nome);
+
+            if (nomesVistos.has(chave)) {
+                throw new Error(`Nome duplicado: "${produto.nome}".`);
+            }
+            nomesVistos.add(chave);
+
+            return produto;
+        } catch (error) {
+            throw new Error(`Item ${i + 1} do backup: ${error.message}`);
+        }
+    });
+}
+
+function carregarDoStorage() {
+    try {
+        const texto = localStorage.getItem(CHAVE_STORAGE);
+        if (!texto) return;
+
+        const produtos = objetosParaProdutos(JSON.parse(texto));
+        listaDeProdutos.push(...produtos);
+    } catch (error) {
+        mostrarToast("Os dados salvos estavam corrompidos e foram ignorados.", "aviso");
+    }
+}
+
+
+function baixarArquivo(conteudo, nomeArquivo, tipoMime) {
+    const blob = new Blob([conteudo], { type: tipoMime });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+}
+
+
+function campoCsv(valor) {
+    let texto = String(valor);
+
+    // Evita que o Excel interprete o texto como fórmula (CSV injection)
+    if (/^[=+\-@]/.test(texto)) texto = `'${texto}`;
+
+    // Aspas, ponto-e-vírgula ou quebra de linha exigem o campo entre aspas
+    if (/[";\r\n]/.test(texto)) texto = `"${texto.replace(/"/g, '""')}"`;
+
+    return texto;
+}
+
+botaoCsv.addEventListener("click", () => {
+    if (listaDeProdutos.length === 0) {
+        mostrarToast("Não há produtos para exportar.", "info");
+        return;
+    }
+
+    const casasBR = (n) => n.toFixed(2).replace(".", ",");
+
+    const linhas = [
+        ["Nome", "Preço", "Quantidade", "Subtotal"],
+        ...listaDeProdutos.map((p) => [p.nome, casasBR(p.preco), p.quantidade, casasBR(p.subtotal)]),
+    ].map((colunas) => colunas.map(campoCsv).join(";"));
+
+    // BOM (\uFEFF) faz o Excel reconhecer os acentos em UTF-8
+    baixarArquivo("\uFEFF" + linhas.join("\r\n"), "estoque.csv", "text/csv;charset=utf-8");
+    mostrarToast("Arquivo estoque.csv gerado.", "sucesso");
+});
+
+botaoBackup.addEventListener("click", () => {
+    if (listaDeProdutos.length === 0) {
+        mostrarToast("Não há produtos para salvar no backup.", "info");
+        return;
+    }
+
+    baixarArquivo(
+        JSON.stringify(produtosParaObjetos(), null, 2),
+        "backup_estoque.json",
+        "application/json"
+    );
+    mostrarToast("Backup baixado com sucesso.", "sucesso");
+});
+
+botaoRestaurar.addEventListener("click", () => inputArquivoBackup.click());
+
+inputArquivoBackup.addEventListener("change", () => {
+    const arquivo = inputArquivoBackup.files[0];
+    if (!arquivo) return;
+
+    const leitor = new FileReader();
+
+    leitor.addEventListener("load", async () => {
+        let novosProdutos;
+
+        try {
+            novosProdutos = objetosParaProdutos(JSON.parse(leitor.result));
+        } catch (error) {
+            const motivo = error instanceof SyntaxError ? "O arquivo não é um JSON válido." : error.message;
+            mostrarToast(`Falha ao restaurar: ${motivo}`, "erro");
+            inputArquivoBackup.value = "";
+            return;
+        }
+
+        const confirmado = await confirmarAcao({
+            titulo: "Restaurar backup?",
+            mensagemHTML: `O backup contém <strong>${novosProdutos.length}</strong> ${novosProdutos.length === 1 ? "produto" : "produtos"}. Os dados atuais serão <strong>substituídos</strong>.`,
+            textoConfirmar: "Sim, restaurar",
+        });
+
+        if (confirmado) {
+            listaDeProdutos.length = 0;
+            listaDeProdutos.push(...novosProdutos);
+            inputBusca.value = "";
+            resetarEstado();
+            salvarNoStorage();
+            renderizarTabela();
+            mostrarToast("Backup restaurado com sucesso.", "sucesso");
+        }
+
+        inputArquivoBackup.value = ""; // permite escolher o mesmo arquivo de novo
+    });
+
+    leitor.addEventListener("error", () => {
+        mostrarToast("Não foi possível ler o arquivo.", "erro");
+        inputArquivoBackup.value = "";
+    });
+
+    leitor.readAsText(arquivo);
+});
+
+carregarDoStorage();
 renderizarTabela();

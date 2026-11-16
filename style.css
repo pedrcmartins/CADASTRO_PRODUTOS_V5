@@ -208,7 +208,8 @@ label {
     color: var(--tinta);
 }
 
-input {
+input,
+select {
     width: 100%;
     padding: 11px 12px;
     font-family: inherit;
@@ -220,11 +221,16 @@ input {
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
+select {
+    cursor: pointer;
+}
+
 input::placeholder {
     color: #9aa8b5;
 }
 
-input:focus {
+input:focus,
+select:focus {
     outline: none;
     border-color: var(--destaque);
     box-shadow: 0 0 0 3px rgba(14, 124, 134, 0.2);
@@ -379,8 +385,30 @@ h2 {
     color: var(--tinta);
 }
 
-#campo-busca {
+.barra-filtros {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
     margin-bottom: 16px;
+}
+
+.barra-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.btn-acao {
+    padding: 8px 14px;
+    font-size: 14px;
+    color: var(--destaque-escuro);
+    background-color: transparent;
+    border: 1px solid var(--destaque);
+}
+
+.btn-acao:hover {
+    background-color: #e3f3f4;
 }
 
 .tabela-wrapper {
@@ -449,6 +477,36 @@ tbody tr.em-edicao:hover {
     box-shadow: inset 4px 0 0 var(--alerta);
 }
 
+/* Estoque crítico (quantidade <= 3) */
+tbody tr.estoque-baixo,
+tbody tr.estoque-baixo:hover {
+    background-color: var(--perigo-fundo);
+}
+
+tbody tr.estoque-baixo td:first-child {
+    box-shadow: inset 4px 0 0 var(--perigo);
+}
+
+.selo-baixo {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #fff;
+    background-color: var(--perigo);
+    border-radius: 999px;
+}
+
+/* Em edição tem prioridade visual sobre estoque baixo */
+tbody tr.em-edicao.estoque-baixo,
+tbody tr.em-edicao.estoque-baixo:hover {
+    background-color: var(--alerta-fundo);
+}
+
 .vazio,
 .sem-resultado {
     text-align: center !important;
@@ -485,8 +543,6 @@ tbody tr.em-edicao:hover {
 .btn-remover:hover {
     background-color: var(--perigo-fundo);
 }
-
-/* ---------- Ajustes dos componentes Bootstrap (modais/toasts) ---------- */
 
 .modal-title {
     font-family: var(--fonte-titulo);
@@ -597,6 +653,10 @@ tbody tr.em-edicao:hover {
 
     form {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .barra-filtros {
+        grid-template-columns: 1fr;
     }
 
     .form-nome,
